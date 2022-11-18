@@ -1,0 +1,15 @@
+server:
+  read_timeout: 10s
+  write_timeout: 10s
+  shutdown_timeout: 5s
+
+postgres:
+  host: 'db'
+  port: '5432'
+  sslmode: 'disable'
+  conn_attempts: 20
+  conn_timeout: 1s
+  max_pool_size: 10
+
+logger:
+  level: 'debug'

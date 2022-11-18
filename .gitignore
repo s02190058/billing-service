@@ -1,2 +1,8 @@
 # IDE
 .idea
+
+#config
+.env
+
+# postgres data
+pg-data
