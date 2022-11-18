@@ -26,7 +26,10 @@ func Run(cfg *config.Config) {
 	userStorage := storage.NewUserStorage(logger, pool)
 	userService := service.NewUserService(userStorage)
 
-	router := transport.ConfigureRouter(logger, userService)
+	orderStorage := storage.NewOrderStorage(logger, pool)
+	orderService := service.NewOrderService(orderStorage)
+
+	router := transport.ConfigureRouter(logger, userService, orderService)
 
 	server := httpserver.New(router, httpserver.Config(cfg.Server))
 

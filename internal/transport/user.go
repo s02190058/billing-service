@@ -13,8 +13,8 @@ import (
 
 var (
 	ErrBadRequest    = errors.New("bad request")
-	ErrMissedUserID  = errors.New("missed user id")
 	ErrInvalidUserID = errors.New("user id must be an integer")
+	ErrMissedUserID  = errors.New("missed user id")
 )
 
 type userService interface {
@@ -156,8 +156,9 @@ func (h *userHandler) handleTransfer() http.Handler {
 				code = http.StatusBadRequest
 			case errors.Is(err, service.ErrUserNotFound):
 				code = http.StatusNotFound
-			case errors.Is(err, service.ErrInvalidTransfer),
-				errors.Is(err, service.ErrInsufficientFunds):
+			case errors.Is(err, service.ErrInvalidTransfer):
+				code = http.StatusUnprocessableEntity
+			case errors.Is(err, service.ErrInsufficientFunds):
 				code = http.StatusUnprocessableEntity
 			default:
 				code = http.StatusInternalServerError

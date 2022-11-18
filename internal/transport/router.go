@@ -10,10 +10,13 @@ import (
 func ConfigureRouter(
 	logger *zap.SugaredLogger,
 	userService userService,
+	orderService orderService,
 ) http.Handler {
 	router := mux.NewRouter()
 
 	registerUserRoutes(logger, router.PathPrefix("/users").Subrouter(), userService)
+
+	registerOrderRoutes(logger, router.PathPrefix("/orders").Subrouter(), orderService)
 
 	return router
 }
