@@ -17,7 +17,7 @@ var (
 	ErrMissedYear     = errors.New("missed year")
 	ErrInvalidYear    = errors.New("year must be an integer")
 	ErrMissedMonth    = errors.New("missed month")
-	ErrInvalidMonth   = errors.New("month must be in the range from 1 to 12")
+	ErrInvalidMonth   = errors.New("month must be an integer")
 )
 
 type orderService interface {
@@ -214,14 +214,21 @@ func (h *orderHandler) handleReport() http.Handler {
 			return
 		}
 		month, err := strconv.Atoi(params.Get("month"))
-		if err != nil || month < 1 || month > 12 {
+		if err != nil {
 			errorResponse(h.logger, w, http.StatusBadRequest, ErrInvalidMonth)
 			return
 		}
 
 		path, err := h.service.Report(year, month)
 		if err != nil {
-			errorResponse(h.logger, w, http.StatusInternalServerError, err)
+			var code int
+			switch {
+			case errors.Is(err, service.ErrInvalidMonth):
+				code = http.StatusBadRequest
+			default:
+				code = http.StatusInternalServerError
+			}
+			errorResponse(h.logger, w, code, err)
 			return
 		}
 

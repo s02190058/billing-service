@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/s02190058/billing-service/internal/model"
 	"github.com/s02190058/billing-service/internal/service"
 	"go.uber.org/zap"
 )
@@ -179,4 +180,48 @@ func (s UserStorage) Transfer(id, receiverID int, amount int) (int, error) {
 	}
 
 	return balance, nil
+}
+
+func (s UserStorage) Transactions(id int, orderField string, limit, offset int) ([]model.Transaction, error) {
+	query := "SELECT id, user_id, amount, message, created " +
+		"FROM journal " +
+		"WHERE user_id=$1 " +
+		"ORDER BY " + orderField + " " +
+		"LIMIT $2 " +
+		"OFFSET $3"
+
+	rows, err := s.db.Query(
+		context.Background(),
+		query,
+		id,
+		limit,
+		offset,
+	)
+	if err != nil {
+		s.logger.Errorf("can't process query %q: %v", query, err)
+		return nil, service.ErrInternalServerError
+	}
+
+	transactions := make([]model.Transaction, 0)
+	for rows.Next() {
+		var transaction model.Transaction
+		if err = rows.Scan(
+			&transaction.ID,
+			&transaction.UserID,
+			&transaction.Amount,
+			&transaction.Message,
+			&transaction.Created,
+		); err != nil {
+			s.logger.Errorf("can't scan transaction values %q: %v", query, err)
+			return nil, service.ErrInternalServerError
+		}
+
+		transactions = append(transactions, transaction)
+	}
+	if err = rows.Err(); err != nil {
+		s.logger.Errorf("error occurred during rows scanning: %v", err)
+		return nil, service.ErrInternalServerError
+	}
+
+	return transactions, nil
 }

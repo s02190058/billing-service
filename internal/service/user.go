@@ -1,10 +1,15 @@
 package service
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/s02190058/billing-service/internal/model"
+)
 
 var (
 	ErrInsufficientFunds = errors.New("insufficient funds")
 	ErrInvalidAmount     = errors.New("amount must be positive")
+	ErrInvalidOrderField = errors.New("order field must be 'amount' or 'created'")
 	ErrInvalidTransfer   = errors.New("impossible to transfer to yourself")
 	ErrUserNotFound      = errors.New("user not found")
 )
@@ -13,6 +18,7 @@ type userStorage interface {
 	GetBalance(id int) (balance int, err error)
 	TopUpBalance(id int, amount int) (balance int, err error)
 	Transfer(id, receiverID int, amount int) (balance int, err error)
+	Transactions(id int, orderField string, limit, offset int) (transactions []model.Transaction, err error)
 }
 
 type UserService struct {
@@ -46,4 +52,12 @@ func (s UserService) Transfer(id, receiverID int, amount int) (int, error) {
 	}
 
 	return s.storage.Transfer(id, receiverID, amount)
+}
+
+func (s UserService) Transactions(id int, orderField string, limit, offset int) ([]model.Transaction, error) {
+	if orderField != "amount" && orderField != "created" {
+		return nil, ErrInvalidOrderField
+	}
+
+	return s.storage.Transactions(id, orderField, limit, offset)
 }

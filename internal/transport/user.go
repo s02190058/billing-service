@@ -7,20 +7,21 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/s02190058/billing-service/internal/model"
 	"github.com/s02190058/billing-service/internal/service"
 	"go.uber.org/zap"
 )
 
 var (
-	ErrBadRequest    = errors.New("bad request")
-	ErrInvalidUserID = errors.New("user id must be an integer")
 	ErrMissedUserID  = errors.New("missed user id")
+	ErrInvalidUserID = errors.New("user id must be an integer")
 )
 
 type userService interface {
 	GetBalance(id int) (balance int, err error)
 	TopUpBalance(id int, amount int) (balance int, err error)
 	Transfer(id, receiverID int, amount int) (balance int, err error)
+	Transactions(id int, orderField string, limit, offset int) (transactions []model.Transaction, err error)
 }
 
 type userHandler struct {
@@ -38,6 +39,7 @@ func registerUserRoutes(
 	router.Handle("/{user_id}", handler.handleGetBalance()).Methods(http.MethodGet)
 	router.Handle("/{user_id}", handler.handleTopUpBalance()).Methods(http.MethodPost)
 	router.Handle("/{user_id}/transfer", handler.handleTransfer()).Methods(http.MethodPost)
+	router.Handle("/{user_id}/transactions", handler.handleTransactions()).Methods(http.MethodGet)
 }
 
 func getUserID(r *http.Request) (int, error) {
@@ -168,5 +170,47 @@ func (h *userHandler) handleTransfer() http.Handler {
 		}
 
 		balanceResponse(h.logger, w, http.StatusOK, balance)
+	})
+}
+
+func (h *userHandler) handleTransactions() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, err := getUserID(r)
+		if err != nil {
+			errorResponse(h.logger, w, http.StatusBadRequest, err)
+			return
+		}
+
+		params := r.URL.Query()
+
+		orderField := params.Get("order_field")
+		if orderField == "" {
+			orderField = "created"
+		}
+
+		limit, err := strconv.Atoi(params.Get("limit"))
+		if err != nil {
+			limit = 25
+		}
+
+		offset, err := strconv.Atoi(params.Get("offset"))
+		if err != nil {
+			offset = 0
+		}
+
+		transactions, err := h.service.Transactions(id, orderField, limit, offset)
+		if err != nil {
+			var code int
+			switch {
+			case errors.Is(err, service.ErrInvalidOrderField):
+				code = http.StatusBadRequest
+			default:
+				code = http.StatusInternalServerError
+			}
+			errorResponse(h.logger, w, code, err)
+			return
+		}
+
+		response(h.logger, w, http.StatusOK, transactions)
 	})
 }

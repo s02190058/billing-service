@@ -252,6 +252,10 @@ func (s OrderStorage) Report(year int, month time.Month) ([][]string, error) {
 
 		services = append(services, []string{serviceID, totalRevenue})
 	}
+	if err = rows.Err(); err != nil {
+		s.logger.Errorf("error occurred during rows scanning: %v", err)
+		return nil, service.ErrInternalServerError
+	}
 
 	return services, nil
 }

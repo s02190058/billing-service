@@ -11,6 +11,7 @@ import (
 var (
 	ErrAlreadyReserved = errors.New("service has already been reserved")
 	ErrInvalidCost     = errors.New("cost must be non-negative")
+	ErrInvalidMonth    = errors.New("month must be in the range from 1 to 12")
 	ErrRecordNotFound  = errors.New("record not found")
 )
 
@@ -56,6 +57,10 @@ func (s OrderService) Reject(orderID, userID, serviceID int, cost int) error {
 }
 
 func (s OrderService) Report(year, month int) (string, error) {
+	if month < 1 || month > 12 {
+		return "", ErrInvalidMonth
+	}
+
 	services, err := s.storage.Report(year, time.Month(month))
 	if err != nil {
 		return "", err

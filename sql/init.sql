@@ -19,6 +19,8 @@ CREATE TABLE reserves
     PRIMARY KEY (order_id, user_id, service_id)
 );
 
+CREATE INDEX ON reserves (service_id);
+
 -- journal table stores all transactions
 DROP TABLE IF EXISTS journal;
 CREATE TABLE journal
@@ -29,3 +31,5 @@ CREATE TABLE journal
     message TEXT      NOT NULL,
     created TIMESTAMP NOT NULL DEFAULT now()
 );
+
+CREATE INDEX ON journal (user_id);
