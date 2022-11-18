@@ -22,5 +22,11 @@ func ConfigureRouter(
 		http.StripPrefix("/reports", http.FileServer(http.Dir("/reports"))),
 	)
 
+	mw := middleware{
+		logger: logger,
+	}
+
+	router.Use(mw.catchPanic, mw.setRequestID, mw.logRequest)
+
 	return router
 }
