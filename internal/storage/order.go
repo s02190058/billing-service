@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -157,6 +158,7 @@ func (s OrderStorage) Confirm(orderID, userID, serviceID int, cost int) error {
 
 	return nil
 }
+
 func (s OrderStorage) Reject(orderID, userID, serviceID int, cost int) error {
 	tx, err := s.db.Begin(context.Background())
 	if err != nil {
@@ -216,4 +218,40 @@ func (s OrderStorage) Reject(orderID, userID, serviceID int, cost int) error {
 	}
 
 	return nil
+}
+
+func (s OrderStorage) Report(year int, month time.Month) ([][]string, error) {
+	from := time.Date(year, month, 0, 0, 0, 0, 0, time.UTC)
+	to := from.AddDate(0, 1, 0)
+
+	query := "SELECT service_id, SUM(cost) AS total_revenue FROM reserves " +
+		"WHERE status=$1 AND created>=$2 AND created<$3 " +
+		"GROUP BY service_id"
+
+	status := "confirmed"
+	rows, err := s.db.Query(
+		context.Background(),
+		query,
+		status,
+		from,
+		to,
+	)
+	if err != nil {
+		s.logger.Errorf("can't process query %q: %v", query, err)
+		return nil, service.ErrInternalServerError
+	}
+
+	services := make([][]string, 0)
+	for rows.Next() {
+		var serviceID string
+		var totalRevenue string
+		if err = rows.Scan(&serviceID, &totalRevenue); err != nil {
+			s.logger.Errorf("can't scan service values")
+			return nil, service.ErrInternalServerError
+		}
+
+		services = append(services, []string{serviceID, totalRevenue})
+	}
+
+	return services, nil
 }

@@ -18,5 +18,9 @@ func ConfigureRouter(
 
 	registerOrderRoutes(logger, router.PathPrefix("/orders").Subrouter(), orderService)
 
+	router.PathPrefix("/reports/").Handler(
+		http.StripPrefix("/reports", http.FileServer(http.Dir("/reports"))),
+	)
+
 	return router
 }

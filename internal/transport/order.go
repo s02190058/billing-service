@@ -12,14 +12,19 @@ import (
 )
 
 var (
-	ErrInvalidOrderID = errors.New("order id must be an integer")
 	ErrMissedOrderID  = errors.New("missed order id")
+	ErrInvalidOrderID = errors.New("order id must be an integer")
+	ErrMissedYear     = errors.New("missed year")
+	ErrInvalidYear    = errors.New("year must be an integer")
+	ErrMissedMonth    = errors.New("missed month")
+	ErrInvalidMonth   = errors.New("month must be in the range from 1 to 12")
 )
 
 type orderService interface {
 	Reserve(orderID, userID, serviceID int, cost int) (err error)
 	Confirm(orderID, userID, serviceID int, cost int) (err error)
 	Reject(orderID, userID, serviceID int, cost int) (err error)
+	Report(year, month int) (path string, err error)
 }
 
 type orderHandler struct {
@@ -36,6 +41,7 @@ func registerOrderRoutes(logger *zap.SugaredLogger, router *mux.Router, service 
 	router.Handle("/{order_id}/reserve", handler.HandleReserve()).Methods(http.MethodPost)
 	router.Handle("/{order_id}/confirm", handler.HandleConfirm()).Methods(http.MethodPost)
 	router.Handle("/{order_id}/reject", handler.HandleReject()).Methods(http.MethodPost)
+	router.Handle("/report", handler.handleReport()).Methods(http.MethodGet)
 }
 
 func getOrderID(r *http.Request) (int, error) {
@@ -186,5 +192,41 @@ func (h *orderHandler) HandleReject() http.Handler {
 		}
 
 		statusResponse(h.logger, w, http.StatusOK, "rejected")
+	})
+}
+
+func (h *orderHandler) handleReport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		params := r.URL.Query()
+
+		if params.Get("year") == "" {
+			errorResponse(h.logger, w, http.StatusBadRequest, ErrMissedYear)
+			return
+		}
+		year, err := strconv.Atoi(params.Get("year"))
+		if err != nil {
+			errorResponse(h.logger, w, http.StatusBadRequest, ErrInvalidYear)
+			return
+		}
+
+		if params.Get("month") == "" {
+			errorResponse(h.logger, w, http.StatusBadRequest, ErrMissedMonth)
+			return
+		}
+		month, err := strconv.Atoi(params.Get("month"))
+		if err != nil || month < 1 || month > 12 {
+			errorResponse(h.logger, w, http.StatusBadRequest, ErrInvalidMonth)
+			return
+		}
+
+		path, err := h.service.Report(year, month)
+		if err != nil {
+			errorResponse(h.logger, w, http.StatusInternalServerError, err)
+			return
+		}
+
+		response(h.logger, w, http.StatusOK, map[string]string{
+			"url": r.Host + path,
+		})
 	})
 }

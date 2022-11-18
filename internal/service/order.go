@@ -1,6 +1,12 @@
 package service
 
-import "errors"
+import (
+	"encoding/csv"
+	"errors"
+	"fmt"
+	"os"
+	"time"
+)
 
 var (
 	ErrAlreadyReserved = errors.New("service has already been reserved")
@@ -12,6 +18,7 @@ type orderStorage interface {
 	Reserve(orderID, userID, serviceID int, cost int) (err error)
 	Confirm(orderID, userID, serviceID int, cost int) (err error)
 	Reject(orderID, userID, serviceID int, cost int) (err error)
+	Report(year int, month time.Month) (services [][]string, err error)
 }
 
 type OrderService struct {
@@ -46,4 +53,30 @@ func (s OrderService) Reject(orderID, userID, serviceID int, cost int) error {
 	}
 
 	return s.storage.Reject(orderID, userID, serviceID, cost)
+}
+
+func (s OrderService) Report(year, month int) (string, error) {
+	services, err := s.storage.Report(year, time.Month(month))
+	if err != nil {
+		return "", err
+	}
+
+	reportPath := fmt.Sprintf("/reports/%d-%d.csv", year, month)
+	report, err := os.Create(reportPath)
+	if err != nil {
+		println(err.Error())
+		return "", ErrInternalServerError
+	}
+
+	csvWriter := csv.NewWriter(report)
+	csvWriter.Comma = ';'
+
+	if err = csvWriter.Write([]string{"service", "total revenue"}); err != nil {
+		return "", ErrInternalServerError
+	}
+	if err = csvWriter.WriteAll(services); err != nil {
+		return "", ErrInternalServerError
+	}
+
+	return reportPath, nil
 }

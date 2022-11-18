@@ -26,6 +26,8 @@ services:
     container_name: application
     ports:
       - '${SRV_PORT}:${SRV_PORT}'
+    volumes:
+      - ./reports:/reports
     environment:
       SRV_PORT: ${SRV_PORT}
       PG_USER: ${PG_USER}

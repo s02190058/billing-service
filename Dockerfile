@@ -16,10 +16,12 @@ COPY go.mod ./
 COPY go.sum ./
 RUN CGO_ENABLED=0 GOOS=linux \
     go build -o /bin/app ./cmd/app
+RUN mkdir /reports
 
 # step 3 - running binary application
 FROM scratch
 COPY --from=build /bin/app /app
+COPY --from=build /reports /reports
 COPY configs /configs
-EXPOSE 8080
+EXPOSE ${SRV_PORT}
 CMD ["/app"]
