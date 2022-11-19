@@ -174,7 +174,7 @@ func (s OrderStorage) Reject(orderID, userID, serviceID int, cost int) error {
 	query := "UPDATE reserves SET status=$1 WHERE " +
 		"order_id=$2 AND user_id=$3 AND service_id=$4 AND cost=$5 AND status=$6"
 
-	status := "confirmed"
+	status := "rejected"
 	prevStatus := "reserved"
 	tag, err := tx.Exec(
 		context.Background(),
