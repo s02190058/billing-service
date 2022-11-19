@@ -148,7 +148,7 @@ $ curl localhost:8081/users/1
 Подтвердим оплату первой услуги:
 
 ```shell
-$ curl -d '{"user_id":1,"service_id":14,"cost":100}' localhost:8081/orders/387/confirm
+$ curl -d '{"user_id":1,"service_id":23,"cost":300}' localhost:8081/orders/387/confirm
 # {"status":"confirmed"}
 ```
 
